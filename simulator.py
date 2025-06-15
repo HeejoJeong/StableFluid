@@ -65,7 +65,6 @@ radius = Ly / 20
 # xmax = int(nx * 10.5 // 40)
 # ymin = int(ny * 9.5 // 20)
 # ymax = int(ny * 10.5 // 20)
-
 xmin = int(nx * 8.5 // 40)
 xmax = int(nx * 11.5 // 40)
 ymin = int(ny * 8.5 // 20)
@@ -79,15 +78,15 @@ wymax = int(Ly * ymax / ny)
 @ti.kernel
 def init_boundary(ct: ti.template()):
     for i, j in ct:
-        if i >= xmin and i < xmax and j >= ymin and j < ymax:
-            ct[i, j] = SOLID
-
-        # circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
-        # circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
-        # circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
-
-        # if circle1 :
+        # if i >= xmin and i < xmax and j >= ymin and j < ymax:
         #     ct[i, j] = SOLID
+
+        circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
+        circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
+        circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
+
+        if circle1 or circles2 or circles3:
+            ct[i, j] = SOLID
         elif i == nx - 1:
             ct[i, j] = EMPTY
         elif i == 0 or j == 0 or j == ny - 1:
@@ -234,21 +233,21 @@ def advect_c(u0: ti.template(), v0: ti.template(), cur_f: ti.template(), nxt_f: 
 
 @ti.kernel
 def apply_den(df: ti.template()):
-    den = 1
+    den = 0.7
     for i, j in df:
 
-        # if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
-        # if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
-        # if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
+        if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
+        if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
+        if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
 
         if j >= int(ny * 8.6 // 20) and j <= int(ny * 8.7 // 20): df[0, j] = den
         if j >= int(ny * 9.5 // 20) and j <= int(ny * 9.6 // 20): df[0, j] = den
         if j >= int(ny * 10.4 // 20) and j <= int(ny * 10.5 // 20): df[0, j] = den
         if j >= int(ny * 11.3 // 20) and j <= int(ny * 11.4 // 20): df[0, j] = den
 
-        # if j >= int(ny * 12.2 // 20) and j <= int(ny * 12.3 // 20): df[0, j] = den
-        # if j >= int(ny * 13.1 // 20) and j <= int(ny * 13.2 // 20): df[0, j] = den
-        # if j >= int(ny * 14.0 // 20) and j <= int(ny * 14.1 // 20): df[0, j] = den
+        if j >= int(ny * 12.2 // 20) and j <= int(ny * 12.3 // 20): df[0, j] = den
+        if j >= int(ny * 13.1 // 20) and j <= int(ny * 13.2 // 20): df[0, j] = den
+        if j >= int(ny * 14.0 // 20) and j <= int(ny * 14.1 // 20): df[0, j] = den
 
 
 @ti.kernel
