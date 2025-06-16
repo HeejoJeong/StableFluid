@@ -1,4 +1,5 @@
 import taichi as ti
+ti.init(arch=ti.cuda)
 
 # window resolution
 Lx = 800        # Lx

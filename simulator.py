@@ -1,42 +1,30 @@
 import taichi as ti
+from solver import ConjugateGradientSolver as solver
 
-# ti.init(arch=ti.cuda,debug=True)
-ti.init(arch=ti.cuda)
 
-SOLVER = "CG"
-# SOLVER = "Jacobi"
 
-if SOLVER == "CG":
-    from solver import ConjugateGradientSolver as solver
+SCENE = "SQR"
+# SCENE = "CIRCLES"
+# SCENE = "SMOKE_PLUME"
 
+num_solver_iter = 100
 # cell sides' length
 dx = 1
 dy = 1
 dx_inv = 1 / dx
 dy_inv = 1 / dy
 
-if SOLVER == "CG":
-    Lx = solver.Lx  # Lx
-    Ly = solver.Ly  # Ly
-    nx = solver.nx
-    ny = solver.ny
 
-elif SOLVER =="Jacobi":
-    # window resolution
-    Lx = 800  # Lx
-    Ly = 400  # Ly
-
-    # grid resolution
-    nx = int(Lx // dx) + 2
-    ny = int(Ly // dy) + 2
+Lx = solver.Lx  # Lx
+Ly = solver.Ly  # Ly
+nx = solver.nx
+ny = solver.ny
 
 dt = 0.02
 rho = 1.0
 rho_inv = 1 / rho
-p_jacobi_iters = 500   # 500 default, 40 for a quicker but less accurate result
-damping = 1  # - 1/750     # used in advect function
-circle = False
-square = not circle
+damping = 1
+
 
 u0 = ti.field(float, shape=(nx + 1, ny))
 u1 = ti.field(float, shape=(nx + 1, ny))
@@ -78,14 +66,17 @@ wymax = int(Ly * ymax / ny)
 @ti.kernel
 def init_boundary(ct: ti.template()):
     for i, j in ct:
-        # if i >= xmin and i < xmax and j >= ymin and j < ymax:
-        #     ct[i, j] = SOLID
+        cond = False
 
-        circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
-        circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
-        circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
+        if SCENE == "SQR":
+            cond = i >= xmin and i < xmax and j >= ymin and j < ymax
+        elif SCENE == "CIRCLES":
+            circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
+            circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
+            circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
+            cond = circle1 or circles2 or circles3
 
-        if circle1 or circles2 or circles3:
+        if cond:
             ct[i, j] = SOLID
         elif i == nx - 1:
             ct[i, j] = EMPTY
@@ -97,9 +88,8 @@ def init_boundary(ct: ti.template()):
 # solver
 init_boundary(cell_type)
 
-if SOLVER == "CG":
-    solver.set_solver_param(100, 1e-5)
-    solver.build_LinearSystem_LHS_Poisson(cell_type, dt / (rho * dx * dx))
+solver.set_solver_param(num_solver_iter, 1e-5)
+solver.build_LinearSystem_LHS_Poisson(cell_type, dt / (rho * dx * dx))
 
 
 ### ADVECTION ###
@@ -233,18 +223,18 @@ def advect_c(u0: ti.template(), v0: ti.template(), cur_f: ti.template(), nxt_f: 
 
 @ti.kernel
 def apply_den(df: ti.template()):
-    den = 0.7
+    den = 1
     for i, j in df:
-
-        if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
-        if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
-        if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
 
         if j >= int(ny * 8.6 // 20) and j <= int(ny * 8.7 // 20): df[0, j] = den
         if j >= int(ny * 9.5 // 20) and j <= int(ny * 9.6 // 20): df[0, j] = den
         if j >= int(ny * 10.4 // 20) and j <= int(ny * 10.5 // 20): df[0, j] = den
         if j >= int(ny * 11.3 // 20) and j <= int(ny * 11.4 // 20): df[0, j] = den
 
+
+        if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
+        if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
+        if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
         if j >= int(ny * 12.2 // 20) and j <= int(ny * 12.3 // 20): df[0, j] = den
         if j >= int(ny * 13.1 // 20) and j <= int(ny * 13.2 // 20): df[0, j] = den
         if j >= int(ny * 14.0 // 20) and j <= int(ny * 14.1 // 20): df[0, j] = den
@@ -393,17 +383,9 @@ def step():
     p1.fill(0.0)
     divergence(u0, v0, divs, cell_type)
 
-    if SOLVER == "Jacobi":
-        # get divergence
-        # # pressure initializing before Jacobi iteration
-        for _ in range(p_jacobi_iters):
-            pressure_jacobi(p0, p1, cell_type)
-            p0, p1 = p1, p0
-
-    elif SOLVER == "CG":
-        solver.build_LinearSystem_RHS_Poisson(divs, cell_type)
-        solver.solveCG(cell_type)
-        solver.copy_Solution(p0)
+    solver.build_LinearSystem_RHS_Poisson(divs, cell_type)
+    solver.solveCG(cell_type)
+    solver.copy_Solution(p0)
 
     # projection
     subtract_gradient_u(u0, p0, cell_type)
