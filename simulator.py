@@ -3,9 +3,9 @@ from solver import ConjugateGradientSolver as solver
 
 
 
-SCENE = "SQR"
+# SCENE = "SQR"
 # SCENE = "CIRCLES"
-# SCENE = "SMOKE_PLUME"
+SCENE = "SMOKE_PLUME"
 
 num_solver_iter = 100
 # cell sides' length
@@ -66,24 +66,36 @@ wymax = int(Ly * ymax / ny)
 @ti.kernel
 def init_boundary(ct: ti.template()):
     for i, j in ct:
-        cond = False
+        if SCENE == "SQR" or SCENE == "CIRCLES" :
+            cond = False
 
-        if SCENE == "SQR":
-            cond = i >= xmin and i < xmax and j >= ymin and j < ymax
-        elif SCENE == "CIRCLES":
-            circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
-            circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
-            circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
-            cond = circle1 or circles2 or circles3
+            if SCENE == "SQR":
+                cond = i >= xmin and i < xmax and j >= ymin and j < ymax
+            elif SCENE == "CIRCLES":
+                circle1 = ((i - Ox) ** 2 + (j - Oy) ** 2 <= radius ** 2)
+                circles2 = ((i - 1.5*Ox) ** 2 + (j - 0.8*Oy) ** 2 <= radius ** 2) or ((i - 1.5*Ox) ** 2 + (j - 1.2*Oy) ** 2 <= radius ** 2)
+                circles3 = ((i - 2.0*Ox) ** 2 + (j - 0.5*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.0*Oy) ** 2 <= radius ** 2) or ((i - 2.0*Ox) ** 2 + (j - 1.5*Oy) ** 2 <= radius ** 2)
+                cond = circle1 or circles2 or circles3
 
-        if cond:
-            ct[i, j] = SOLID
-        elif i == nx - 1:
-            ct[i, j] = EMPTY
-        elif i == 0 or j == 0 or j == ny - 1:
-            ct[i, j] = SOLID
-        else:
-            ct[i, j] = FLUID
+            if cond:
+                ct[i, j] = SOLID
+            elif i == nx - 1:
+                ct[i, j] = EMPTY
+            elif i == 0 or j == 0 or j == ny - 1:
+                ct[i, j] = SOLID
+            else:
+                ct[i, j] = FLUID
+
+        elif SCENE == "SMOKE_PLUME" :
+            if i == 0:
+                ct[i, j] = SOLID
+            elif j == 0 or j == ny - 1:
+                ct[i, j] = SOLID
+            elif i == nx - 1:
+                ct[i, j] = EMPTY
+            else:
+                ct[i, j] = FLUID
+
 
 # solver
 init_boundary(cell_type)
@@ -225,19 +237,26 @@ def advect_c(u0: ti.template(), v0: ti.template(), cur_f: ti.template(), nxt_f: 
 def apply_den(df: ti.template()):
     den = 1
     for i, j in df:
+        if SCENE == "CIRCLES" or SCENE == "SQR" :
+            if j >= int(ny * 8.6 // 20) and j <= int(ny * 8.7 // 20): df[0, j] = den
+            if j >= int(ny * 9.5 // 20) and j <= int(ny * 9.6 // 20): df[0, j] = den
+            if j >= int(ny * 10.4 // 20) and j <= int(ny * 10.5 // 20): df[0, j] = den
+            if j >= int(ny * 11.3 // 20) and j <= int(ny * 11.4 // 20): df[0, j] = den
 
-        if j >= int(ny * 8.6 // 20) and j <= int(ny * 8.7 // 20): df[0, j] = den
-        if j >= int(ny * 9.5 // 20) and j <= int(ny * 9.6 // 20): df[0, j] = den
-        if j >= int(ny * 10.4 // 20) and j <= int(ny * 10.5 // 20): df[0, j] = den
-        if j >= int(ny * 11.3 // 20) and j <= int(ny * 11.4 // 20): df[0, j] = den
+        if SCENE == "CIRCLES" :
+            if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
+            if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
+            if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
+            if j >= int(ny * 12.2 // 20) and j <= int(ny * 12.3 // 20): df[0, j] = den
+            if j >= int(ny * 13.1 // 20) and j <= int(ny * 13.2 // 20): df[0, j] = den
+            if j >= int(ny * 14.0 // 20) and j <= int(ny * 14.1 // 20): df[0, j] = den
 
-
-        if j >= int(ny * 5.9 // 20) and j <= int(ny * 6.0 // 20): df[0, j] = den
-        if j >= int(ny * 6.8 // 20) and j <= int(ny * 6.9 // 20): df[0, j] = den
-        if j >= int(ny * 7.7 // 20) and j <= int(ny * 7.8 // 20): df[0, j] = den
-        if j >= int(ny * 12.2 // 20) and j <= int(ny * 12.3 // 20): df[0, j] = den
-        if j >= int(ny * 13.1 // 20) and j <= int(ny * 13.2 // 20): df[0, j] = den
-        if j >= int(ny * 14.0 // 20) and j <= int(ny * 14.1 // 20): df[0, j] = den
+        if SCENE == "SMOKE_PLUME" :
+            if j >= int(ny * 7.8 // 20) and j <= int(ny * 8.4 // 20): df[0, j] = den
+            if j >= int(ny * 8.9 // 20) and j <= int(ny * 9.3 // 20): df[0, j] = den
+            if j >= int(ny * 9.8 // 20) and j <= int(ny * 10.2 // 20): df[0, j] = den
+            if j >= int(ny * 10.7 // 20) and j <= int(ny * 11.1 // 20): df[0, j] = den
+            if j >= int(ny * 11.6 // 20) and j <= int(ny * 12.2 // 20): df[0, j] = den
 
 
 @ti.kernel
@@ -249,19 +268,56 @@ def enforce_boundary(u0: ti.template(), v0: ti.template(), ct: ti.template(), pf
         if ct[i, j] == EMPTY:
             pf[i, j] = 0.0
 
-    # for j in ti.ndrange(ny):
-    #     u0[0, j] = u0[1, j] = Lx / 10.0
-    #     v0[0, j] = v0[nx - 1, j] = 0.0
-    #     u0[nx, j] = u0[nx-1, j] #= u0[nx-2,j]
 
     for j in ti.ndrange(ny):
         u0[0, j] = u0[1, j] = Lx / 10.0
         u0[nx, j] = u0[nx - 1, j] = u0[nx - 2, j]
         v0[0, j] = v0[1, j] = v0[nx - 1, j] = 0.0
 
+
+    # for j in ti.ndrange(ny):
+    #     u0[0, j] = u0[1, j] = Lx / 10.0
+    #     v0[0, j] = v0[nx - 1, j] = 0.0
+    #     u0[nx, j] = u0[nx-1, j] #= u0[nx-2,j]
+
+
+
     # for i in ti.ndrange(nx):
     #     v0[i,1] =  v0[i,ny-1]= 0.0
 
+@ti.kernel
+def enforce_boundary_plume(u0: ti.template(), v0: ti.template(), ct: ti.template(), pf: ti.template()):
+    for i, j in ct:
+        if ct[i, j] == SOLID:
+            u0[i, j] = u0[i + 1, j] = v0[i, j] = v0[i, j + 1] = 0.0
+
+        if ct[i, j] == EMPTY:
+            pf[i, j] = 0.0
+
+
+    # for j in ti.ndrange(ny):
+    #     if (j < 0.75 * ny and j > 0.25 * ny):
+    #         u0[0, j] = u0[1, j] = Lx / 5.0
+    #         v0[0, j] = v0[1, j] = 0.0
+    #     else :
+    #         u0[0, j] = u0[1, j] = u0[2, j]
+    for j in ti.ndrange(ny):
+        if (j < 0.65 * ny and j > 0.35 * ny):
+            u0[0, j] = u0[1, j] = Lx / 10.0
+            v0[0, j] = v0[1, j] = 0.0
+
+        u0[nx, j] = u0[nx - 1, j] = u0[nx - 2, j]
+
+
+    # for j in ti.ndrange(ny):
+    #     u0[0, j] = u0[1, j] = Lx / 10.0
+    #     v0[0, j] = v0[nx - 1, j] = 0.0
+    #     u0[nx, j] = u0[nx-1, j] #= u0[nx-2,j]
+
+
+
+    # for i in ti.ndrange(nx):
+    #     v0[i,1] =  v0[i,ny-1]= 0.0
 
 @ti.kernel
 def divergence(u0: ti.template(), v0: ti.template(), divs: ti.template(), ct: ti.template()):
@@ -370,7 +426,11 @@ def step():
 
     # apply u
     apply_den(d0)
-    enforce_boundary(u0, v0, cell_type, p0)
+    if SCENE == "SQR" or SCENE == "CIRCLES":
+        enforce_boundary(u0, v0, cell_type, p0)
+
+    elif SCENE == "SMOKE_PLUME":
+        enforce_boundary_plume(u0, v0, cell_type, p0)
 
     # advection
     advect_u(u0, v0, u0, u1)
