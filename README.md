@@ -1,10 +1,9 @@
 # Stable Fluid
 
+![Smoke plume demo](smoke_plume.gif)
+
 ![Circles demo](circles.gif)
 ![Square demo](square.gif)
-![plume demo](square.gif)
-
-_Examples above were generated at 800 × 400 resolution._
 
 
 A 2‑D stable‑fluid simulation written in Python and accelerated with [Taichi](https://www.taichi-lang.org/) for GPU parallelism.
